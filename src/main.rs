@@ -18,7 +18,19 @@ struct Worker {
 
 fn main() {
     let remote_cmd: Vec<String> = env::args().skip(1).collect();
-    let worker_conf = Ini::load_from_file("cliscale.ini").unwrap();
+
+    //println!("{}/cliscale.ini", env::args().nth(0).unwrap());
+
+    let worker_conf = Ini::load_from_file(
+        format!("{}.ini",
+            std::env::current_exe()
+                .unwrap()
+                .into_os_string()
+                .into_string()
+                .unwrap()
+        ))
+    .unwrap();
+
     let mut workers: Vec<Worker> = Vec::new();
 
     for (sec, prop) in &worker_conf {
@@ -40,7 +52,7 @@ fn main() {
 
         workers.push(Worker {
             connection_string: cxn,
-            path: binpaths.split(";").map(|s| s.to_string()).collect()
+            path: binpaths.split(":").map(|s| s.to_string()).collect()
         })
     }
 
@@ -52,7 +64,7 @@ fn main() {
     for worker in workers {
         let mut child = Command::new("ssh")
             .arg(worker.connection_string)
-            .arg(format!("PATH={}", worker.path.join(";")))
+            .arg(format!("PATH={}", worker.path.join(":")))
             .arg(remote_cmd.join(" ")
         )
         .stdin(Stdio::piped())
